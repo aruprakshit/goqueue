@@ -16,12 +16,10 @@ func (e *JobError) Error() string {
 	return fmt.Sprintf("job %d failed: %s", e.JobID, e.Message)
 }
 
-// Unwrap returns the underlying error for errors.Is/As support
 func (e *JobError) Unwrap() error {
 	return e.Err
 }
 
-// NewJobError creates a new JobError
 func NewJobError(jobID int, message string, err error) *JobError {
 	return &JobError{
 		JobID:   jobID,
@@ -40,7 +38,6 @@ func (e *ValidationError) Error() string {
 	return fmt.Sprintf("validation error on field '%s': %s", e.Field, e.Message)
 }
 
-// NewValidationError creates a new ValidationError
 func NewValidationError(field, message string) *ValidationError {
 	return &ValidationError{
 		Field:   field,
@@ -58,7 +55,6 @@ func (e *TimeoutError) Error() string {
 	return fmt.Sprintf("job %d timed out after %s", e.JobID, e.Duration)
 }
 
-// NewTimeoutError creates a new TimeoutError
 func NewTimeoutError(jobID int, duration string) *TimeoutError {
 	return &TimeoutError{
 		JobID:    jobID,
