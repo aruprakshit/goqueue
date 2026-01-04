@@ -20,7 +20,11 @@ func main() {
 	// Create channels
 	jobs := make(chan job.Job)
 	results := make(chan job.Result, numJobs) // Buffered to prevent blocking
-	done := make(chan struct{})               // Shutdown signal for workers
+	// Signal channels use struct{} instead of bool because:
+	// 1. Zero memory allocation (struct{} is 0 bytes, bool is 1 byte)
+	// 2. Self-documenting: signals "only the event matters, not the value"
+	// 3. Idiomatic Go pattern for broadcast signals via close()
+	done := make(chan struct{})
 
 	var wg sync.WaitGroup
 
