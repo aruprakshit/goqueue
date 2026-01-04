@@ -17,6 +17,7 @@ func main() {
 		numWorkers      = 3                      // Number of concurrent workers
 		shutdownTimeout = 5 * time.Second        // Max time before forced shutdown
 		tickInterval    = 100 * time.Millisecond // Time between job generation (fast!)
+		rateLimit       = 200 * time.Millisecond // 5 jobs/sec per worker
 	)
 
 	// Buffer size strategies:
@@ -48,7 +49,7 @@ func main() {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()
-			c := consumer.New(workerID, m)
+			c := consumer.New(workerID, m, rateLimit)
 			c.Start(jobs, results, done)
 		}(i)
 	}

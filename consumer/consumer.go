@@ -12,19 +12,21 @@ import (
 
 // Consumer processes jobs from the jobs channel
 type Consumer struct {
-	id         int
-	maxRetries int
-	jobTimeout time.Duration
-	metrics    *metrics.Metrics
+	id          int
+	maxRetries  int
+	jobTimeout  time.Duration
+	metrics     *metrics.Metrics
+	rateLimiter *time.Ticker
 }
 
 // New creates a new Consumer with the given ID
-func New(id int, m *metrics.Metrics) *Consumer {
+func New(id int, m *metrics.Metrics, rateLimit time.Duration) *Consumer {
 	return &Consumer{
-		id:         id,
-		maxRetries: 3,
-		jobTimeout: 150 * time.Millisecond, // Jobs taking longer will timeout
-		metrics:    m,
+		id:          id,
+		maxRetries:  3,
+		jobTimeout:  150 * time.Millisecond, // Jobs taking longer will timeout
+		metrics:     m,
+		rateLimiter: time.NewTicker(rateLimit),
 	}
 }
 
@@ -32,6 +34,7 @@ func New(id int, m *metrics.Metrics) *Consumer {
 // Results are sent to the results channel.
 // The consumer stops when done is closed OR jobs channel is closed.
 func (c *Consumer) Start(jobs <-chan job.Job, results chan<- job.Result, done <-chan struct{}) {
+	defer c.rateLimiter.Stop() // stop the ticket when done
 	for {
 		select {
 		case <-done:
@@ -44,6 +47,9 @@ func (c *Consumer) Start(jobs <-chan job.Job, results chan<- job.Result, done <-
 				fmt.Printf("[Consumer %d] No more jobs, shutting down\n", c.id)
 				return
 			}
+
+			<-c.rateLimiter.C // wait for rate limit token
+
 			result := c.process(j)
 			// Non-blocking send: try to send, warn if channel is full
 			select {
