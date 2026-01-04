@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"goqueue/consumer"
 	"goqueue/job"
@@ -11,8 +12,9 @@ import (
 
 func main() {
 	const (
-		numJobs    = 5 // Number of jobs to process
-		numWorkers = 3 // Number of concurrent workers
+		numJobs         = 5                    // Number of jobs to process
+		numWorkers      = 3                    // Number of concurrent workers
+		shutdownTimeout = 2 * time.Second // Max time before forced shutdown
 	)
 
 	// Create channels
@@ -39,9 +41,28 @@ func main() {
 		}(i)
 	}
 
-	// Wait for producer and consumer to finish, then close results
+	// Graceful shutdown timer
+	shutdownTimer := time.NewTimer(shutdownTimeout)
+	allDone := make(chan struct{})
+
+	// Signal when all workers finish normally
 	go func() {
 		wg.Wait()
+		close(allDone)
+	}()
+
+	// Wait for either: all done OR timeout
+	go func() {
+		select {
+		case <-allDone:
+			// Normal completion - stop the timer
+			shutdownTimer.Stop()
+			fmt.Println("[Main] All workers finished normally")
+		case <-shutdownTimer.C:
+			// Timeout - signal workers to stop
+			fmt.Println("[Main] Shutdown timeout reached, stopping workers...")
+			close(done)
+		}
 		close(results)
 	}()
 
