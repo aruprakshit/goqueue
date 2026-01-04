@@ -15,12 +15,12 @@ type Consumer struct {
 	id          int
 	maxRetries  int
 	jobTimeout  time.Duration
-	metrics     *metrics.Metrics
+	metrics     *metrics.MetricsServer
 	rateLimiter *time.Ticker
 }
 
 // New creates a new Consumer with the given ID
-func New(id int, m *metrics.Metrics, rateLimit time.Duration) *Consumer {
+func New(id int, m *metrics.MetricsServer, rateLimit time.Duration) *Consumer {
 	return &Consumer{
 		id:          id,
 		maxRetries:  3,

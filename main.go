@@ -32,8 +32,9 @@ func main() {
 	// 3. Idiomatic Go pattern for broadcast signals via close()
 	done := make(chan struct{})
 
-	// Metrics for tracking job statistics (thread-safe)
-	m := metrics.New()
+	// Start metrics server (stateful goroutine)
+	m := metrics.NewServer()
+	go m.Run()
 
 	var wg sync.WaitGroup
 
@@ -98,10 +99,12 @@ func main() {
 	processedCount, failedCount := m.Stats()
 	fmt.Printf("Metrics: Processed: %d | Failed: %d\n", processedCount, failedCount)
 
-	if failedJobs := m.FailedJobs(); len(failedJobs) > 0 {
-		fmt.Println("\n Failed job details:")
-		for jobID, err := range failedJobs {
-			fmt.Printf(" job %d: %v\n", jobID, err)
-		}
-	}
+	m.Stop() // Shutdown the metrics server
+
+	// if failedJobs := m.FailedJobs(); len(failedJobs) > 0 {
+	// 	fmt.Println("\n Failed job details:")
+	// 	for jobID, err := range failedJobs {
+	// 		fmt.Printf(" job %d: %v\n", jobID, err)
+	// 	}
+	// }
 }
