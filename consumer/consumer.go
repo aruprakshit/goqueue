@@ -7,6 +7,7 @@ import (
 
 	customerrors "goqueue/errors"
 	"goqueue/job"
+	"goqueue/metrics"
 )
 
 // Consumer processes jobs from the jobs channel
@@ -14,14 +15,16 @@ type Consumer struct {
 	id         int
 	maxRetries int
 	jobTimeout time.Duration
+	metrics    *metrics.Metrics
 }
 
 // New creates a new Consumer with the given ID
-func New(id int) *Consumer {
+func New(id int, m *metrics.Metrics) *Consumer {
 	return &Consumer{
 		id:         id,
 		maxRetries: 3,
 		jobTimeout: 150 * time.Millisecond, // Jobs taking longer will timeout
+		metrics:    m,
 	}
 }
 
@@ -86,6 +89,7 @@ func (c *Consumer) process(j job.Job) job.Result {
 			duration := time.Since(startTime)
 			output := fmt.Sprintf("Processed payload: %s", j.Payload)
 			fmt.Printf("[Consumer %d] Completed %v in %v\n", c.id, j, duration)
+			c.metrics.RecordSuccess()
 			return job.NewResult(j.ID, output, duration)
 
 		case <-time.After(c.jobTimeout):
@@ -98,5 +102,6 @@ func (c *Consumer) process(j job.Job) job.Result {
 	// All retries exhausted
 	duration := time.Since(startTime)
 	fmt.Printf("[Consumer %d] All retries exhausted for %v\n", c.id, j)
+	c.metrics.RecordFailure(j.ID, lastErr)
 	return job.NewErrorResult(j.ID, lastErr, duration)
 }

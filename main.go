@@ -7,6 +7,7 @@ import (
 
 	"goqueue/consumer"
 	"goqueue/job"
+	"goqueue/metrics"
 	"goqueue/producer"
 )
 
@@ -30,6 +31,9 @@ func main() {
 	// 3. Idiomatic Go pattern for broadcast signals via close()
 	done := make(chan struct{})
 
+	// Metrics for tracking job statistics (thread-safe)
+	m := metrics.New()
+
 	var wg sync.WaitGroup
 
 	wg.Add(1)
@@ -44,7 +48,7 @@ func main() {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()
-			c := consumer.New(workerID)
+			c := consumer.New(workerID, m)
 			c.Start(jobs, results, done)
 		}(i)
 	}
@@ -88,4 +92,15 @@ func main() {
 
 	fmt.Println("\n=== Summary ===")
 	fmt.Printf("Total: %d | Completed: %d | Failed: %d\n", completed+failed, completed, failed)
+
+	// veriify
+	processedCount, failedCount := m.Stats()
+	fmt.Printf("Metrics: Processed: %d | Failed: %d\n", processedCount, failedCount)
+
+	if failedJobs := m.FailedJobs(); len(failedJobs) > 0 {
+		fmt.Println("\n Failed job details:")
+		for jobID, err := range failedJobs {
+			fmt.Printf(" job %d: %v\n", jobID, err)
+		}
+	}
 }
