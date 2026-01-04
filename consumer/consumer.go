@@ -42,7 +42,14 @@ func (c *Consumer) Start(jobs <-chan job.Job, results chan<- job.Result, done <-
 				return
 			}
 			result := c.process(j)
-			results <- result
+			// Non-blocking send: try to send, warn if channel is full
+			select {
+			case results <- result:
+				// Sent successfully
+			default:
+				// Channel full - log warning but don't block
+				fmt.Printf("[Consumer %d] WARNING: results channel full, dropping result for job %d\n", c.id, result.JobID)
+			}
 		}
 	}
 }
