@@ -11,7 +11,8 @@ import (
 
 func main() {
 	const (
-		numJobs = 5 // Number of jobs to process
+		numJobs    = 5 // Number of jobs to process
+		numWorkers = 3 // Number of concurrent workers
 	)
 
 	// Create channels
@@ -29,12 +30,15 @@ func main() {
 		p.Start(jobs) // This will close the jobs channel when done
 	}()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		c := consumer.New(1)
-		c.Start(jobs, results)
-	}()
+	// Start worker pool
+	for i := 1; i <= numWorkers; i++ {
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
+			c := consumer.New(workerID)
+			c.Start(jobs, results)
+		}(i)
+	}
 
 	// Wait for producer and consumer to finish, then close results
 	go func() {
