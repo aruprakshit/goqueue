@@ -16,10 +16,9 @@ func main() {
 	)
 
 	// Create channels
-	// jobs channel: producer sends jobs, consumer receives
-	// results channel: consumer sends results, main collects
 	jobs := make(chan job.Job)
 	results := make(chan job.Result, numJobs) // Buffered to prevent blocking
+	done := make(chan struct{})               // Shutdown signal for workers
 
 	var wg sync.WaitGroup
 
@@ -36,7 +35,7 @@ func main() {
 		go func(workerID int) {
 			defer wg.Done()
 			c := consumer.New(workerID)
-			c.Start(jobs, results)
+			c.Start(jobs, results, done)
 		}(i)
 	}
 
