@@ -12,9 +12,10 @@ import (
 
 func main() {
 	const (
-		numJobs         = 5                    // Number of jobs to process
-		numWorkers      = 3                    // Number of concurrent workers
-		shutdownTimeout = 2 * time.Second // Max time before forced shutdown
+		numJobs         = 5                      // Number of jobs to process
+		numWorkers      = 3                      // Number of concurrent workers
+		shutdownTimeout = 5 * time.Second        // Max time before forced shutdown
+		tickInterval    = 500 * time.Millisecond // Time between job generation
 	)
 
 	// Create channels
@@ -31,7 +32,7 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		p := producer.New(numJobs)
+		p := producer.New(numJobs, tickInterval)
 		p.Start(jobs) // This will close the jobs channel when done
 	}()
 
