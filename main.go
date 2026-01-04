@@ -15,11 +15,14 @@ func main() {
 		numJobs         = 5                      // Number of jobs to process
 		numWorkers      = 3                      // Number of concurrent workers
 		shutdownTimeout = 5 * time.Second        // Max time before forced shutdown
-		tickInterval    = 500 * time.Millisecond // Time between job generation
+		tickInterval    = 100 * time.Millisecond // Time between job generation (fast!)
 	)
 
-	// Create channels
-	jobs := make(chan job.Job)
+	// Buffer size strategies:
+	// 1. numJobs      - Producer finishes fast, workers process gradually
+	// 2. numWorkers   - One pending job per worker (minimal memory)
+	// 3. Fixed (5-10) - General purpose, limits memory usage
+	jobs := make(chan job.Job, numJobs)
 	results := make(chan job.Result, numJobs) // Buffered to prevent blocking
 	// Signal channels use struct{} instead of bool because:
 	// 1. Zero memory allocation (struct{} is 0 bytes, bool is 1 byte)
